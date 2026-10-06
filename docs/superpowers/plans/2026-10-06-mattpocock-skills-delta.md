@@ -66,16 +66,16 @@ ref = "main"
 user_only = ["ask-matt", "code-review", "codebase-design", "implement", "improve-codebase-architecture", "setup-matt-pocock-skills", "tdd"]
 ```
 
-- [ ] **Step 1: Write failing tests** in `scripts/test_sync.py` (plain functions, run by a `__main__` loop over `test_*` globals, each in its own `tempfile.TemporaryDirectory`):
+- [x] **Step 1: Write failing tests** in `scripts/test_sync.py` (plain functions, run by a `__main__` loop over `test_*` globals, each in its own `tempfile.TemporaryDirectory`):
   - `test_delta_drops_engineering_names`: upstream `engineering/a`, `productivity/handoff`; eng has `handoff` → kept names `["a"]`, dropped `["handoff"]`.
   - `test_name_differs_from_folder`: upstream folder `engineering/foo` with `name: bar`; after `mirror`, `dest/bar/SKILL.md` exists and `dest/foo` does not.
   - `test_eng_skill_without_name_uses_folder`: eng `skills/handoff/SKILL.md` with no `name:` → `"handoff" in engineering_names(eng)`.
   - `test_mirror_flattens_and_drops_symlinks`: nested upstream with a symlink inside a skill → `dest/<name>` flat, `not any(p.is_symlink() for p in dest.rglob("*"))`, and a stale `dest/old` from before is gone.
   - `test_missing_manifest_fails`: no manifest → `SystemExit` whose message starts with `::error::`.
-- [ ] **Step 2:** `python3 scripts/test_sync.py` → fails (`ImportError`/`AttributeError`).
-- [ ] **Step 3:** Implement the five functions plus `load_config`. Frontmatter parse = lines between the first two `---` lines; match `^name:\s*(.+)$`, strip quotes.
-- [ ] **Step 4:** `python3 scripts/test_sync.py` → all pass, prints `ok N tests`.
-- [ ] **Step 5:** Commit `feat: delta and mirror for vendored mattpocock skills`.
+- [x] **Step 2:** `python3 scripts/test_sync.py` → fails (`ImportError`/`AttributeError`).
+- [x] **Step 3:** Implement the five functions plus `load_config`. Frontmatter parse = lines between the first two `---` lines; match `^name:\s*(.+)$`, strip quotes.
+- [x] **Step 4:** `python3 scripts/test_sync.py` → all pass, prints `ok N tests`.
+- [x] **Step 5:** Commit `feat: delta and mirror for vendored mattpocock skills`.
 
 ### Task 2: Patches and NOTICE
 
@@ -105,17 +105,17 @@ Local modifications, re-applied by scripts/sync.py on every sync:
 To refresh, run .github/workflows/sync-upstream.yml.
 ```
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_patch_inserts_after_opening_fence`: SKILL.md with `description: >\n  line one\n  line two` → after patch, line 2 of the file is `disable-model-invocation: true` and the folded description is byte-identical.
   - `test_patch_is_idempotent`: patch twice → second run changes no file (compare bytes).
   - `test_patch_respects_existing_flag`: `disable-model-invocation: false` present → becomes `true`, appears once.
   - `test_openai_yaml_existing_policy`: `policy:\n  allow_implicit_invocation: true` → value `false`, `text.count("policy:") == 1`; file without `policy:` → block appended; no `agents/openai.yaml` → file not created.
   - `test_missing_user_only_warns`: names `["gone"]` → returns `["user_only: gone not present"]`, no exception.
   - `test_previous_sha`: no NOTICE → `"none"`; after `write_notice(..., sha="abc123", ...)` → `"abc123"`.
-- [ ] **Step 2:** Run → fail.
-- [ ] **Step 3:** Implement. Line-based edits only (no YAML library).
-- [ ] **Step 4:** Run → all pass.
-- [ ] **Step 5:** Commit `feat: user-only patch and NOTICE files`.
+- [x] **Step 2:** Run → fail.
+- [x] **Step 3:** Implement. Line-based edits only (no YAML library).
+- [x] **Step 4:** Run → all pass.
+- [x] **Step 5:** Commit `feat: user-only patch and NOTICE files`.
 
 ### Task 3: Report, README, CLI, check mode, first real sync
 
@@ -134,17 +134,17 @@ To refresh, run .github/workflows/sync-upstream.yml.
 
 README content: title; first paragraph states this plugin is **the delta from `accelerate-data/engineering-skills`**: every skill in `mattpocock/skills`' plugin manifest except those whose name `engineering-skills` already ships, computed fresh on every sync; slash references such as `/handoff` resolve to the `engineering-skills` versions; the user-only list and why; how the weekly sync PR works; marker block for the table; install via `plugin-marketplace`; MIT attribution to Matt Pocock.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_report_first_run`: `old_sha="none"` → report contains `none →` and lists dropped `handoff`.
   - `test_readme_markers_required`: README without markers → `SystemExit`.
   - `test_readme_table`: rows `[("tdd", False), ("grilling", True)]` → contains `| tdd | user-only |` and `| grilling | model |`.
   - `test_check_detects_collision_and_version_drift`: fixture root with `1.0.0` vs `1.0.1` and a skill named `handoff` while eng has `handoff` → two errors.
   - `test_end_to_end_idempotent`: run `main(["--upstream-dir", u, "--eng-dir", e])` with `cwd` = fixture root twice → no byte change on the second run.
-- [ ] **Step 2:** Run → fail.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Run → all pass.
-- [ ] **Step 5: Real sync.** `python3 scripts/sync.py`. Expected: `ls skills | wc -l` = `23`; `handoff` and `grill-with-docs` absent; `grep -l '^disable-model-invocation: true' skills/{ask-matt,code-review,codebase-design,implement,improve-codebase-architecture,setup-matt-pocock-skills,tdd}/SKILL.md | wc -l` = `7`; `python3 scripts/sync.py --check` exits 0; a second `python3 scripts/sync.py` leaves `git status --porcelain` empty after commit.
-- [ ] **Step 6:** Commit `feat: first vendored sync of mattpocock skills (23)`.
+- [x] **Step 2:** Run → fail.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** Run → all pass.
+- [x] **Step 5: Real sync.** `python3 scripts/sync.py`. Expected: `ls skills | wc -l` = `23`; `handoff` and `grill-with-docs` absent; `grep -l '^disable-model-invocation: true' skills/{ask-matt,code-review,codebase-design,implement,improve-codebase-architecture,setup-matt-pocock-skills,tdd}/SKILL.md | wc -l` = `7`; `python3 scripts/sync.py --check` exits 0; a second `python3 scripts/sync.py` leaves `git status --porcelain` empty after commit.
+- [x] **Step 6:** Commit `feat: first vendored sync of mattpocock skills (23)`.
 
 ### Task 4: Workflows
 
@@ -158,9 +158,9 @@ README content: title; first paragraph states this plugin is **the delta from `a
 
 `check.yml`: `on: pull_request + push (main)`; steps: checkout → setup-python → `python3 scripts/test_sync.py` → clone engineering-skills shallow to `/tmp/eng` → `python3 scripts/sync.py --check --eng-dir /tmp/eng`.
 
-- [ ] **Step 1:** Write both files.
-- [ ] **Step 2:** Validate YAML syntax with `ruby -ryaml -e 'YAML.load_file(ARGV[0])' <file>` for each file; expect no output. If `actionlint` is installed (`brew list actionlint`), run it; expect no findings.
-- [ ] **Step 3:** Commit `ci: weekly upstream sync PR and PR checks`.
+- [x] **Step 1:** Write both files.
+- [x] **Step 2:** Validate YAML syntax with `ruby -ryaml -e 'YAML.load_file(ARGV[0])' <file>` for each file; expect no output. If `actionlint` is installed (`brew list actionlint`), run it; expect no findings.
+- [x] **Step 3:** Commit `ci: weekly upstream sync PR and PR checks`.
 
 ### Task 5: Publish to GitHub (USER checkpoint)
 

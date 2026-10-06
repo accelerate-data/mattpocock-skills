@@ -1,0 +1,28 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run sync tests
+        run: python3 scripts/test_sync.py
+
+      - name: Clone engineering-skills
+        run: git clone --depth=1 https://github.com/accelerate-data/engineering-skills.git /tmp/eng
+
+      - name: Check vendored skills
+        run: python3 scripts/sync.py --check --eng-dir /tmp/eng

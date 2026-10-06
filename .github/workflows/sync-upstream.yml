@@ -1,0 +1,88 @@
+name: Sync upstream skills
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-upstream:
+    name: Sync upstream skills
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync from mattpocock/skills
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/sync.py > "$RUNNER_TEMP/sync-report.md"
+          cat "$RUNNER_TEMP/sync-report.md"
+          {
+            echo
+            echo "Includes a plugin manifest patch version bump so CI version-bump validation passes."
+          } >> "$RUNNER_TEMP/sync-report.md"
+
+      - name: Detect vendored skill changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- skills README.md LICENSE)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump plugin manifest patch version
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          paths = [
+              Path(".claude-plugin/plugin.json"),
+              Path(".codex-plugin/plugin.json"),
+          ]
+          manifests = []
+          for path in paths:
+              with path.open(encoding="utf-8") as handle:
+                  manifests.append(json.load(handle))
+
+          versions = [manifest.get("version") for manifest in manifests]
+          if versions[0] != versions[1]:
+              raise SystemExit(f"manifest versions must match before bumping: {versions[0]!r} != {versions[1]!r}")
+
+          major, minor, patch = map(int, versions[0].split("."))
+          next_version = f"{major}.{minor}.{patch + 1}"
+
+          for path, manifest in zip(paths, manifests):
+              manifest["version"] = next_version
+              path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/sync-upstream
+          title: "chore: sync from mattpocock/skills"
+          body-path: ${{ runner.temp }}/sync-report.md
+          commit-message: "chore: sync from mattpocock/skills"
+          add-paths: |
+            skills
+            README.md
+            LICENSE
+            .claude-plugin/plugin.json
+            .codex-plugin/plugin.json

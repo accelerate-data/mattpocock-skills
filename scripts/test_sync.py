@@ -68,6 +68,76 @@ def test_missing_manifest_fails(tmp):
         raise AssertionError("expected SystemExit")
 
 
+def make_folded(root: Path, name: str, extra: str = "") -> Path:
+    d = root / name
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(f"---\nname: {name}\ndescription: >\n  line one\n  line two\n{extra}---\nbody\n")
+    return d
+
+
+def snapshot(root: Path) -> dict:
+    return {str(p): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
+
+
+def test_patch_inserts_after_opening_fence(tmp):
+    d = make_folded(tmp, "a")
+    sync.patch_user_only(tmp, ["a"])
+    lines = (d / "SKILL.md").read_text().splitlines()
+    assert lines[1] == "disable-model-invocation: true"
+    assert lines[2:6] == ["name: a", "description: >", "  line one", "  line two"]
+
+
+def test_patch_is_idempotent(tmp):
+    d = make_folded(tmp, "a")
+    (d / "agents").mkdir()
+    (d / "agents/openai.yaml").write_text("interface:\n  display_name: \"A\"\n")
+    sync.patch_user_only(tmp, ["a"])
+    first = snapshot(tmp)
+    sync.patch_user_only(tmp, ["a"])
+    assert snapshot(tmp) == first
+
+
+def test_patch_respects_existing_flag(tmp):
+    d = make_folded(tmp, "a", "disable-model-invocation: false\n")
+    sync.patch_user_only(tmp, ["a"])
+    text = (d / "SKILL.md").read_text()
+    assert text.count("disable-model-invocation") == 1
+    assert "disable-model-invocation: true" in text
+
+
+def test_openai_yaml_existing_policy(tmp):
+    d = make_folded(tmp, "a")
+    (d / "agents").mkdir()
+    y = d / "agents/openai.yaml"
+    y.write_text("interface:\n  x: 1\npolicy:\n  allow_implicit_invocation: true\n")
+    sync.patch_user_only(tmp, ["a"])
+    t = y.read_text()
+    assert "allow_implicit_invocation: false" in t and "true" not in t
+    assert t.count("policy:") == 1
+    y.write_text("interface:\n  x: 1\n")
+    sync.patch_user_only(tmp, ["a"])
+    assert y.read_text().endswith("policy:\n  allow_implicit_invocation: false\n")
+    y.write_text("policy:\n  other: 1\n")
+    sync.patch_user_only(tmp, ["a"])
+    t = y.read_text()
+    assert t.count("policy:") == 1 and "allow_implicit_invocation: false" in t
+    b = make_folded(tmp, "b")
+    sync.patch_user_only(tmp, ["b"])
+    assert not (b / "agents").exists()
+
+
+def test_missing_user_only_warns(tmp):
+    assert sync.patch_user_only(tmp, ["gone"]) == ["user_only: gone not present"]
+
+
+def test_previous_sha(tmp):
+    assert sync.read_previous_sha(tmp) == "none"
+    d = make_folded(tmp, "a")
+    sync.write_notice(d, "skills/x/a", "abc123", ["user-only"])
+    assert sync.read_previous_sha(tmp) == "abc123"
+    assert "  - user-only" in (d / "NOTICE").read_text()
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

@@ -14,31 +14,31 @@ Slash references such as `/handoff` resolve to the `engineering-skills` versions
 | codebase-design | user-only |
 | diagnosing-bugs | model |
 | domain-modeling | model |
-| grill-me | model |
+| grill-me | user-only |
 | grilling | model |
 | implement | user-only |
-| implement-spec | model |
+| implement-spec | user-only |
 | improve-codebase-architecture | user-only |
 | pr | model |
 | prototype | model |
 | research | model |
-| retro | model |
+| retro | user-only |
 | setup-matt-pocock-skills | user-only |
 | tdd | user-only |
-| teach | model |
-| to-questionnaire | model |
-| to-spec | model |
-| to-tickets | model |
-| triage | model |
-| wait-what | model |
-| wayfinder | model |
+| teach | user-only |
+| to-questionnaire | user-only |
+| to-spec | user-only |
+| to-tickets | user-only |
+| triage | user-only |
+| wait-what | user-only |
+| wayfinder | user-only |
 | wizard | model |
 | writing-for-agents | model |
 <!-- skills:end -->
 
 ## User-only skills
 
-Some skills run only when you call them by name. The model does not start them by itself. The list is `user_only` in `sync.toml`. The sync sets `disable-model-invocation: true` in `SKILL.md`, and `allow_implicit_invocation: false` in `agents/openai.yaml` when that file exists. This keeps large workflow skills from starting without your request.
+Some skills run only when you call them by name. The model does not start them by itself. Upstream marks some skills this way already. The `user_only` list in `sync.toml` adds more skills to that set. For each listed skill, the sync sets `disable-model-invocation: true` in `SKILL.md`, and `allow_implicit_invocation: false` in `agents/openai.yaml` when that file exists. The table shows the result, read from each `SKILL.md`.
 
 ## Weekly sync
 

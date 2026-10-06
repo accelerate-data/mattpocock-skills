@@ -178,6 +178,39 @@ def test_check_detects_collision_and_version_drift(tmp):
     assert len(sync.check(root, eng)) == 2
 
 
+def test_engineering_names_ignores_nested(tmp):
+    make_skill(tmp / "eng", "skills/x", "x")
+    make_skill(tmp / "eng", "skills/x/ref/deep", "deep")
+    assert sync.engineering_names(tmp / "eng") == {"x"}
+
+
+def test_notice_and_readme_reflect_real_changes(tmp):
+    import os
+    up = make_upstream(tmp, ["engineering/a", "engineering/b", "engineering/c"])
+    make_skill(up, "engineering/b", "b", "disable-model-invocation: true\n")
+    make_skill(up, "engineering/c", "c", "disable-model-invocation: true\n")
+    (up / "LICENSE").write_text("MIT\n")
+    eng = tmp / "eng"
+    make_skill(eng, "skills/z", "z")
+    root = make_root(tmp)
+    (root / "sync.toml").write_text(
+        '[upstream]\nrepo = "x"\nref = "main"\nmanifest = ".claude-plugin/plugin.json"\n'
+        '[engineering]\nrepo = "y"\nref = "main"\n[patches]\nuser_only = ["a", "b"]\n'
+    )
+    (root / "README.md").write_text("<!-- skills:start -->\n<!-- skills:end -->\n")
+    old = os.getcwd()
+    os.chdir(root)
+    try:
+        sync.main(["--upstream-dir", str(up), "--eng-dir", str(eng)])
+    finally:
+        os.chdir(old)
+    t = (root / "README.md").read_text()
+    assert "| a | user-only |" in t and "| b | user-only |" in t and "| c | user-only |" in t
+    assert "disable-model-invocation" in (root / "skills/a/NOTICE").read_text()
+    assert "  - none" in (root / "skills/b/NOTICE").read_text()
+    assert "  - none" in (root / "skills/c/NOTICE").read_text()
+
+
 def test_end_to_end_idempotent(tmp):
     import os
     up = make_upstream(tmp, ["engineering/a", "productivity/handoff"])

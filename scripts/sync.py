@@ -43,7 +43,7 @@ def upstream_skills(upstream: Path, manifest: str) -> list[Path]:
 
 
 def engineering_names(eng: Path) -> set[str]:
-    return {skill_name(p.parent) for p in (eng / "skills").rglob("SKILL.md")}
+    return {skill_name(p.parent) for p in (eng / "skills").glob("*/SKILL.md")}
 
 
 def compute_delta(skills: list[Path], excluded: set[str]) -> tuple[list[Path], list[str]]:
@@ -82,6 +82,16 @@ def _patch_skill_md(path: Path) -> None:
     if not found:
         lines.insert(1, flag)
     path.write_text("".join(lines))
+
+
+def _user_only_flag(path: Path) -> bool:
+    lines = path.read_text().splitlines()
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if re.match(r"^disable-model-invocation:\s*true\s*$", line):
+            return True
+    return False
 
 
 def _patch_openai_yaml(path: Path) -> None:
@@ -233,19 +243,25 @@ def main(argv: list[str] | None = None) -> int:
     kept, dropped = compute_delta(upstream_skills(up, cfg["upstream"]["manifest"]), engineering_names(eng))
     mirror(kept, skills_dir)
     user_only = cfg["patches"]["user_only"]
+    targets = ("SKILL.md", "agents/openai.yaml")
+    pristine = {
+        (n, t): (skills_dir / n / t).read_bytes()
+        for n in user_only for t in targets if (skills_dir / n / t).is_file()
+    }
     warnings = patch_user_only(skills_dir, user_only)
+    labels = {
+        "SKILL.md": "SKILL.md: disable-model-invocation: true",
+        "agents/openai.yaml": "agents/openai.yaml: allow_implicit_invocation: false",
+    }
     for s in kept:
         name = skill_name(s)
-        patches = []
-        if name in user_only:
-            patches.append("SKILL.md: disable-model-invocation: true")
-            if (skills_dir / name / "agents/openai.yaml").is_file():
-                patches.append("agents/openai.yaml: allow_implicit_invocation: false")
+        patches = [labels[t] for t in targets if (name, t) in pristine
+                   and (skills_dir / name / t).read_bytes() != pristine[(name, t)]]
         write_notice(skills_dir / name, s.relative_to(up).as_posix(), new_sha, patches)
     shutil.copyfile(up / "LICENSE", root / "LICENSE")
 
     after = {skill_name(s) for s in kept}
-    update_readme(root / "README.md", [(n, n not in user_only) for n in after])
+    update_readme(root / "README.md", [(n, not _user_only_flag(skills_dir / n / "SKILL.md")) for n in after])
     report = render_report(old_sha, new_sha, before, after, dropped, warnings)
     print(report)
     if os.environ.get("GITHUB_STEP_SUMMARY"):

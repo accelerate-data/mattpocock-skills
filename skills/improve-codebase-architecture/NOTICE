@@ -6,7 +6,6 @@ skills/improve-codebase-architecture/ — vendored from mattpocock/skills
   License:         MIT (see LICENSE at the repo root)
 
 Local modifications, re-applied by scripts/sync.py on every sync:
-  - SKILL.md: disable-model-invocation: true
-  - agents/openai.yaml: allow_implicit_invocation: false
+  - none
 
 To refresh, run .github/workflows/sync-upstream.yml.

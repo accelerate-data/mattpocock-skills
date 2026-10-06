@@ -138,6 +138,72 @@ def test_previous_sha(tmp):
     assert "  - user-only" in (d / "NOTICE").read_text()
 
 
+def test_report_first_run(tmp):
+    r = sync.render_report("none", "abc", set(), {"tdd"}, ["handoff"], [])
+    assert "none →" in r and "handoff" in r
+
+
+def test_readme_markers_required(tmp):
+    r = tmp / "README.md"
+    r.write_text("no markers\n")
+    try:
+        sync.update_readme(r, [("a", True)])
+    except SystemExit:
+        return
+    raise AssertionError("expected SystemExit")
+
+
+def test_readme_table(tmp):
+    r = tmp / "README.md"
+    r.write_text("x\n<!-- skills:start -->\nold\n<!-- skills:end -->\ny\n")
+    sync.update_readme(r, [("tdd", False), ("grilling", True)])
+    t = r.read_text()
+    assert "| tdd | user-only |" in t and "| grilling | model |" in t
+    assert "old" not in t and t.startswith("x\n") and t.endswith("y\n")
+
+
+def make_root(tmp: Path, v1="1.0.0", v2="1.0.0") -> Path:
+    root = tmp / "root"
+    for d, v in ((".claude-plugin", v1), (".codex-plugin", v2)):
+        (root / d).mkdir(parents=True)
+        (root / d / "plugin.json").write_text(json.dumps({"version": v}))
+    return root
+
+
+def test_check_detects_collision_and_version_drift(tmp):
+    root = make_root(tmp, "1.0.0", "1.0.1")
+    make_skill(root, "skills/handoff", "handoff")
+    eng = tmp / "eng"
+    make_skill(eng, "skills/handoff", "handoff")
+    assert len(sync.check(root, eng)) == 2
+
+
+def test_end_to_end_idempotent(tmp):
+    import os
+    up = make_upstream(tmp, ["engineering/a", "productivity/handoff"])
+    (up / "LICENSE").write_text("MIT\n")
+    eng = tmp / "eng"
+    make_skill(eng, "skills/handoff", "handoff")
+    root = make_root(tmp)
+    (root / "sync.toml").write_text(
+        '[upstream]\nrepo = "x"\nref = "main"\nmanifest = ".claude-plugin/plugin.json"\n'
+        '[engineering]\nrepo = "y"\nref = "main"\n[patches]\nuser_only = ["a"]\n'
+    )
+    (root / "README.md").write_text("<!-- skills:start -->\n<!-- skills:end -->\n")
+    old = os.getcwd()
+    os.chdir(root)
+    try:
+        sync.main(["--upstream-dir", str(up), "--eng-dir", str(eng)])
+        first = snapshot(root)
+        sync.main(["--upstream-dir", str(up), "--eng-dir", str(eng)])
+        assert snapshot(root) == first
+        assert sync.main(["--check", "--eng-dir", str(eng)]) == 0
+    finally:
+        os.chdir(old)
+    assert "disable-model-invocation: true" in (root / "skills/a/SKILL.md").read_text()
+    assert not (root / "skills/handoff").exists()
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

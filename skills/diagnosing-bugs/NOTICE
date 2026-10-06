@@ -1,0 +1,11 @@
+skills/diagnosing-bugs/ — vendored from mattpocock/skills
+
+  Upstream:        https://github.com/mattpocock/skills
+  Source path:     skills/engineering/diagnosing-bugs
+  Vendored from:   commit 4588b32ecab9ecc9fc8cc6b6c5e7d675b6004b0d
+  License:         MIT (see LICENSE at the repo root)
+
+Local modifications, re-applied by scripts/sync.py on every sync:
+  - none
+
+To refresh, run .github/workflows/sync-upstream.yml.

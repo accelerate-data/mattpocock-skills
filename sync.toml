@@ -1,0 +1,11 @@
+[upstream]
+repo = "https://github.com/mattpocock/skills.git"
+ref = "main"
+manifest = ".claude-plugin/plugin.json"
+
+[engineering]
+repo = "https://github.com/accelerate-data/engineering-skills.git"
+ref = "main"
+
+[patches]
+user_only = ["ask-matt", "code-review", "codebase-design", "implement", "improve-codebase-architecture", "setup-matt-pocock-skills", "tdd"]

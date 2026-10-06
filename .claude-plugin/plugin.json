@@ -1,0 +1,17 @@
+{
+  "name": "mattpocock-skills",
+  "description": "Matt Pocock's skills that engineering-skills does not already provide, vendored from mattpocock/skills and kept current by a weekly sync.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Accelerate Data"
+  },
+  "repository": "https://github.com/accelerate-data/mattpocock-skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "keywords": [
+    "mattpocock",
+    "skills",
+    "claude-code",
+    "codex"
+  ]
+}
